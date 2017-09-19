@@ -9,8 +9,8 @@
   <v-divider/>
 
   <v-select v-bind:items="keys" v-model="key" hint="Select Key" single-line bottom persistent-hint></v-select>
-  <v-select v-bind:items="intervals" v-model="interval" hint="Note Value" single-line bottom persistent-hint></v-select>
   <Updown prefix="Key" v-on:down="incrKey(-1)" v-on:up="incrKey(1)" />
+  <v-select v-bind:items="intervals" v-model="interval" hint="Note Value" single-line bottom persistent-hint></v-select>
   <v-divider/>
   <div>Root Note: {{ scale_degree }}</div>
   <Updown prefix='Root Note' v-on:down="incrNote(-1)" v-on:up="incrNote(1)" />
@@ -66,7 +66,7 @@ export default {
     },
     scale_degree: function() {
       var names = [
-        'Tonic','Supertonic','Mediant','Subdominant','Dominant','Submediant','Leading tone'
+        'Tonic','Supertonic','Mediant','Subdominant','Dominant','Submediant','Leading tone','Tonic'
       ]
       var prefix = 'th';
       if(this.root_note == 1) {
@@ -184,7 +184,7 @@ export default {
       this.key = this.incrList(i, this.key, this.keys);
     },
     incrNote(i) {
-      this.root_note = this.incrInt(i, this.root_note - 1, 7) + 1;
+      this.root_note = this.incrInt(i, this.root_note - 1, 8) + 1;
     },
     incrOctaves(i) {
       var n = this.octaves + i;
