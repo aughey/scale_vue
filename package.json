@@ -49,6 +49,7 @@
     "webpack-hot-middleware": "^2.18.0",
     "webpack-merge": "^4.1.0",
     "vuetify": ">0.0.1",
+    "store": ">0.0.1",
     "tone": ">0.0.1"
   },
   "engines": {

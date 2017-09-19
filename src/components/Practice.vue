@@ -12,9 +12,11 @@
   <v-select v-bind:items="intervals" v-model="interval" hint="Note Value" single-line bottom persistent-hint></v-select>
   <Updown prefix="Key" v-on:down="incrKey(-1)" v-on:up="incrKey(1)" />
   <v-divider/>
-  <div>Root Note: {{ root_note }}</div>
+  <div>Root Note: {{ scale_degree }}</div>
   <Updown prefix='Root Note' v-on:down="incrNote(-1)" v-on:up="incrNote(1)" />
   <v-divider/>
+  <div>Root note starts in octave (4 is middle C): {{ octave_start }}</div>
+  <Updown prefix='Octave Start' v-on:down="incrOctaveStart(-1)" v-on:up="incrOctaveStart(1)" />
   <div>Number of Octaves: {{ octaves }}</div>
   <Updown prefix='Octave Count' v-on:down="incrOctaves(-1)" v-on:up="incrOctaves(1)" />
   <v-divider/>
@@ -31,17 +33,19 @@
 import Tone from 'tone'
 import Updown from '@/components/Updown'
 import Score from '@/components/Score'
+import Store from 'store'
 export default {
   data() {
     return {
       patterns: ['Scale', 'Interval'],
-      pattern: 'Scale',
-      intervals: ['Whole Note', 'Half Note', 'Quarter Note','Eighth Note', "Sixteenth Note"],
+      pattern: 'Interval',
+      intervals: ['Whole Note', 'Half Note', 'Quarter Note', 'Eighth Note', "Sixteenth Note"],
       interval: 'Whole Note',
       keys: ['C', 'G', 'D', 'A', 'E', 'B', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'],
       key: 'C',
       root_note: 1,
       octaves: 1,
+      octave_start: 4,
       bpm: 120,
       playing: true,
       upanddown: true,
@@ -58,10 +62,26 @@ export default {
     },
     interval_int: function() {
       var index = this.intervals.indexOf(this.interval);
-      return parseInt(Math.pow(2,index))
+      return parseInt(Math.pow(2, index))
+    },
+    scale_degree: function() {
+      var names = [
+        'Tonic','Supertonic','Mediant','Subdominant','Dominant','Submediant','Leading tone'
+      ]
+      var prefix = 'th';
+      if(this.root_note == 1) {
+        prefix = 'st';
+      } else if(this.root_note == 2) {
+        prefix = 'nd';
+      } else if(this.root_note == 3) {
+        prefix = 'rd';
+      }
+      return "" + this.root_note + prefix + " (" + names[this.root_note] + ")";
     }
   },
   mounted() {
+    var self = this;
+
     this.synth = new Tone.Synth({
       envelope: {
         attack: 0.01,
@@ -70,19 +90,33 @@ export default {
       }
     }).toMaster();
 
+    var saved_data = Store.get('practice_data');
+    if(saved_data) {
+      saved_data.forEach((d) => {
+        self[d.key] = d.value;
+      })
+      console.log("Restored previous data");
+    }
+
     Tone.Transport.start()
 
-    var self = this;
+    var towatch = 'key pattern octaves octave_start interval upanddown root_note'.split(' ');
+
     var rebuild = function() {
       if (self.p) {
         self.p.stop();
       }
       self.p = self.createPattern();
       self.p.start();
+
+      // Store this for later
+      Store.set('practice_data', towatch.map((key) => {
+        return {key: key, value: self[key]}
+      }));
+
     }
     rebuild();
 
-    var towatch = 'key pattern octaves interval upanddown root_note'.split(' ');
     towatch.forEach((w) => {
       this.$watch(w, rebuild);
     });
@@ -110,7 +144,12 @@ export default {
       this.playing = !this.playing;
     },
     createPattern() {
-      var notes = this.scale();
+      var notes;
+      if(this.pattern == 'Scale') {
+         notes = this.scale();
+       } else {
+         notes = this.interval_pattern();
+       }
 
       if (this.upanddown) {
         notes = notes.slice().concat(notes.slice().reverse());
@@ -149,13 +188,38 @@ export default {
     },
     incrOctaves(i) {
       var n = this.octaves + i;
-      if (n < 1 || n > 2) {
+      if (n < 1 || n > 3) {
         return;
       }
       this.octaves = n;
     },
-    scale() {
-      var note = this.key + '4';
+    incrOctaveStart(i) {
+      var n = this.octave_start + i;
+      if (n < 1 || n > 5) {
+        return;
+      }
+      this.octave_start = n;
+    },
+    interval_pattern() {
+      var s = this.scale(1); // Force the scale to start on the root
+      var repeat = s[this.root_note - 1];
+      var out = [repeat];
+      s.forEach(function(n) {
+        if(n == repeat) {
+          return;
+        }
+        out.push(n);
+        if(n !== repeat) {
+          out.push(repeat);
+        }
+      });
+      return out;
+    },
+    scale(starting_note) {
+      if(!starting_note) {
+        starting_note = this.root_note;
+      }
+      var note = this.key + this.octave_start;
       var count = this.octaves;
       var pattern = [
         2,
@@ -171,7 +235,7 @@ export default {
       var note = new Tone.Frequency(note);
 
       // Push through to find the actual starting note for this key
-      for (var i = 1; i < this.root_note; ++i) {
+      for (var i = 1; i < starting_note; ++i) {
         var t = pattern[pattern_index];
         note = note.transpose(t);
         pattern_index = (pattern_index + 1) % pattern.length;
