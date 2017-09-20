@@ -41,7 +41,7 @@ export default {
       pattern: 'Interval',
       intervals: ['Whole Note', 'Half Note', 'Quarter Note', 'Eighth Note', "Sixteenth Note"],
       interval: 'Whole Note',
-      keys: ['C', 'G', 'D', 'A', 'E', 'B', 'F', 'Bb', 'Eb', 'Ab', 'Db', 'Gb'],
+      keys: ['C', 'G', 'D', 'A', 'E', 'B', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F'],
       key: 'C',
       root_note: 1,
       octaves: 1,
